@@ -11,10 +11,10 @@ public class Officer {
     @Enumerated(EnumType.STRING)
     private Rank rank;
 
-    @Column(name = "first_name")
+    @Column(name = "first_name", nullable=false)
     private String first;
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", nullable = false)
     private String last;
 
     public Officer() {}

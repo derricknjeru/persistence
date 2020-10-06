@@ -1,0 +1,15 @@
+#Logging
+logging:
+  level:
+    sql: debug
+
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update #Ensure hibernate database is updated after deletion
+    properties:
+      hibernate.format_sql: true
+    show-sql: true
+
+

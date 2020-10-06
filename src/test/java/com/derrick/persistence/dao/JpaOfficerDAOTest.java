@@ -7,54 +7,54 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings({"SqlNoDataSourceInspection"})
 @SpringBootTest
-@ExtendWith(SpringExtension.class)
-//Initialize a database using JPA https://docs.spring.io/spring-boot/docs/1.1.0.M1/reference/html/howto-database-initialization.html
-/*@TestPropertySource(properties = {
-        //"spring.jpa.hibernate.ddl-auto=validate"
-})*/
 @Transactional
-public class JdbcOfficerDAOTest {
-    @Qualifier("jdbcOfficerDAO")
+@ExtendWith(SpringExtension.class)
+public class JpaOfficerDAOTest {
+    @Qualifier("jpaOfficerDAO")
     @Autowired
     private OfficerDAO dao;
 
+    @Autowired
+    private JdbcTemplate template;
+
+    private RowMapper<Integer> idMapper = (rs, num) -> rs.getInt("id");
+
     @Test
-    public void save() {
+    public void testSave() {
         Officer officer = new Officer(Rank.LIEUTENANT, "Nyota", "Uhuru");
         officer = dao.save(officer);
         assertNotNull(officer.getId());
     }
 
     @Test
-    public void findByIdThatExists() {
-        Optional<Officer> officer = dao.findById(1);
-        assertTrue(officer.isPresent());
-        assertEquals(1, officer.get().getId().intValue());
+    public void findOneThatExists() {
+        template.query("select id from officers", idMapper)
+                .forEach(id -> {
+                    Optional<Officer> officer = dao.findById(id);
+                    assertTrue(officer.isPresent());
+                    assertEquals(id, officer.get().getId());
+                });
     }
 
     @Test
-    public void findByIdThatDoesNotExist() {
+    public void findOneThatDoesNotExist() {
         Optional<Officer> officer = dao.findById(999);
         assertFalse(officer.isPresent());
-    }
-
-    @Test
-    public void count() {
-        assertEquals(5, dao.count());
     }
 
     @Test
@@ -66,8 +66,13 @@ public class JdbcOfficerDAOTest {
     }
 
     @Test
+    public void count() {
+        assertEquals(5, dao.count());
+    }
+
+    @Test
     public void delete() {
-        IntStream.rangeClosed(1, 5)
+        template.query("select id from officers", idMapper)
                 .forEach(id -> {
                     Optional<Officer> officer = dao.findById(id);
                     assertTrue(officer.isPresent());
@@ -78,7 +83,16 @@ public class JdbcOfficerDAOTest {
 
     @Test
     public void existsById() {
-        IntStream.rangeClosed(1, 5)
+        template.query("select id from officers", idMapper)
                 .forEach(id -> assertTrue(dao.existsById(id)));
     }
+
+    @Test
+    public void doesNotExist() {
+        List<Integer> ids = template.query("select id from officers",
+                idMapper);
+        assertThat(ids, not(contains(999)));
+        assertFalse(dao.existsById(999));
+    }
+
 }
