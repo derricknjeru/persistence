@@ -5,7 +5,6 @@ import com.derrick.persistence.entities.Rank;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -24,10 +23,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @Transactional
 @ExtendWith(SpringExtension.class)
-public class JpaOfficerDAOTest {
-    @Qualifier("jpaOfficerDAO")
+public class OfficerRepositoryTests {
     @Autowired
-    private OfficerDAO dao;
+    private OfficerRepository dao;
 
     @Autowired
     private JdbcTemplate template;
@@ -93,6 +91,28 @@ public class JpaOfficerDAOTest {
                 idMapper);
         assertThat(ids, not(contains(999)));
         assertFalse(dao.existsById(999));
+    }
+
+    @Test
+    public void findByLast() {
+        List<Officer> officerList = dao.findByLast("Kirk");
+        assertEquals(1, officerList.size());
+        assertEquals("Kirk", officerList.get(0).getLast());
+
+    }
+
+    @Test
+    public void findAllByRankAAndLastLike() {
+        //Fetch officers with i in them.
+        List<Officer> officers = dao.findAllByRankAndLastLike(Rank.CAPTAIN, "%i%");
+        System.out.println(officers);
+
+        List<String> lastNames = officers.stream()
+                .map(Officer::getLast)
+                .collect(Collectors.toList());
+
+        assertThat(lastNames, containsInAnyOrder("Kirk", "Picard", "Sisko"));
+
     }
 
 }
